@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <title>סטטיסטיקות אזעקות</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #333;
+    }
+    canvas {
+      max-width: 600px;
+      margin-bottom: 40px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 30px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>סטטיסטיקות אזעקות - פיקוד העורף</h1>
+  <p id="summary"></p>
+
+  <canvas id="alertsPerCityChart"></canvas>
+  <canvas id="alertsPerHourChart"></canvas>
+
+  <h2>רשימת אזעקות</h2>
+  <table id="alertsTable">
+    <thead>
+      <tr>
+        <th>מיקום</th>
+        <th>תאריך</th>
+        <th>שעה</th>
+        <th>קטגוריה</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function loadData() {
+      const response = await fetch("GetAlarmsHistory.json");
+      const data = await response.json();
+
+      document.getElementById("summary").innerText = `מספר אזעקות: ${data.length}`;
+
+      const perCity = {};
+      const perHour = {};
+      const tableBody = document.querySelector("#alertsTable tbody");
+
+      data.forEach(item => {
+        const city = item.data;
+        const hour = item.time.split(":")[0];
+
+        perCity[city] = (perCity[city] || 0) + 1;
+        perHour[hour] = (perHour[hour] || 0) + 1;
+
+        const row = `<tr>
+          <td>${city}</td>
+          <td>${item.date}</td>
+          <td>${item.time}</td>
+          <td>${item.category_desc}</td>
+        </tr>`;
+        tableBody.innerHTML += row;
+      });
+
+      // Chart: Alerts Per City
+      new Chart(document.getElementById("alertsPerCityChart"), {
+        type: "bar",
+        data: {
+          labels: Object.keys(perCity),
+          datasets: [{
+            label: "כמות אזעקות לפי יישוב",
+            data: Object.values(perCity),
+            backgroundColor: "rgba(255, 99, 132, 0.6)"
+          }]
+        }
+      });
+
+      // Chart: Alerts Per Hour
+      new Chart(document.getElementById("alertsPerHourChart"), {
+        type: "bar",
+        data: {
+          labels: Object.keys(perHour).sort(),
+          datasets: [{
+            label: "כמות אזעקות לפי שעה",
+            data: Object.keys(perHour).sort().map(h => perHour[h]),
+            backgroundColor: "rgba(54, 162, 235, 0.6)"
+          }]
+        }
+      });
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
