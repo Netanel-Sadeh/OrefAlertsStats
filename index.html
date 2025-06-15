@@ -76,59 +76,5 @@
     </table>
   </div>
 
-  <script>
-    async function loadData() {
-      try {
-        const response = await fetch("GetAlarmsHistory.json");
-        const data = await response.json();
-
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("content").style.display = "block";
-
-        document.getElementById("summary").innerText = `סה"כ אזעקות: ${data.length}`;
-
-        const perHour = {};
-        const tbody = document.getElementById("tableBody");
-
-        data.forEach(item => {
-          const hour = item.time.split(":")[0];
-          perHour[hour] = (perHour[hour] || 0) + 1;
-
-          const row = `<tr>
-            <td>${item.data}</td>
-            <td>${item.date}</td>
-            <td>${item.time}</td>
-            <td>${item.category_desc}</td>
-          </tr>`;
-          tbody.innerHTML += row;
-        });
-
-        new Chart(document.getElementById("alertsPerHourChart"), {
-          type: "bar",
-          data: {
-            labels: Object.keys(perHour).sort(),
-            datasets: [{
-              label: "אזעקות לפי שעה",
-              data: Object.keys(perHour).sort().map(h => perHour[h]),
-              backgroundColor: "#666"
-            }]
-          },
-          options: {
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { title: { display: true, text: 'שעה' } },
-              y: { title: { display: true, text: 'כמות' }, beginAtZero: true }
-            }
-          }
-        });
-      } catch (err) {
-        document.getElementById("loading").innerText = "שגיאה בטעינת הנתונים.";
-        console.error(err);
-      }
-    }
-
-    loadData();
-  </script>
-
 </body>
 </html>
