@@ -1,124 +1,134 @@
 <!DOCTYPE html>
 <html lang="he">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>סטטיסטיקות אזעקות</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       direction: rtl;
       padding: 20px;
-      background-color: #f9f9f9;
+      background: #fff;
+      color: #000;
     }
     h1 {
-      color: #333;
-    }
-    canvas {
-      max-width: 600px;
-      margin-bottom: 40px;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 30px;
-    }
-    table, th, td {
-      border: 1px solid #ccc;
-    }
-    th, td {
-      padding: 8px;
-      text-align: center;
+      font-size: 1.5em;
+      margin-bottom: 10px;
     }
     #loading {
-      font-weight: bold;
-      color: #666;
+      text-align: center;
+      font-size: 18px;
+      padding: 40px;
+    }
+    #spinner {
+      border: 4px solid #ccc;
+      border-top: 4px solid #333;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+    canvas {
+      margin-top: 30px;
+      max-width: 100%;
     }
   </style>
 </head>
 <body>
-  <h1>סטטיסטיקות אזעקות - פיקוד העורף</h1>
-  <p id="loading">טוען נתונים...</p>
-  <p id="summary"></p>
 
-  <canvas id="alertsPerCityChart"></canvas>
-  <canvas id="alertsPerHourChart"></canvas>
+  <div id="loading">
+    <div id="spinner"></div>
+    טוען נתונים...
+  </div>
 
-  <h2>רשימת אזעקות (ראשונות בלבד)</h2>
-  <table id="alertsTable">
-    <thead>
-      <tr>
-        <th>מיקום</th>
-        <th>תאריך</th>
-        <th>שעה</th>
-        <th>קטגוריה</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div id="content" style="display:none;">
+    <h1>סטטיסטיקות אזעקות</h1>
+    <p id="summary"></p>
+
+    <canvas id="alertsPerHourChart"></canvas>
+
+    <table>
+      <thead>
+        <tr>
+          <th>מיקום</th>
+          <th>תאריך</th>
+          <th>שעה</th>
+          <th>קטגוריה</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 
   <script>
     async function loadData() {
       try {
         const response = await fetch("GetAlarmsHistory.json");
-        const allData = await response.json();
-        const data = allData.slice(0, 100); // טוען רק את 100 הראשונים
+        const data = await response.json();
 
         document.getElementById("loading").style.display = "none";
-        document.getElementById("summary").innerText = `מציג 100 מתוך ${allData.length} אזעקות`;
+        document.getElementById("content").style.display = "block";
 
-        const perCity = {};
+        document.getElementById("summary").innerText = `סה"כ אזעקות: ${data.length}`;
+
         const perHour = {};
-        const tableBody = document.querySelector("#alertsTable tbody");
+        const tbody = document.getElementById("tableBody");
 
         data.forEach(item => {
-          const city = item.data;
           const hour = item.time.split(":")[0];
-
-          perCity[city] = (perCity[city] || 0) + 1;
           perHour[hour] = (perHour[hour] || 0) + 1;
 
           const row = `<tr>
-            <td>${city}</td>
+            <td>${item.data}</td>
             <td>${item.date}</td>
             <td>${item.time}</td>
             <td>${item.category_desc}</td>
           </tr>`;
-          tableBody.innerHTML += row;
+          tbody.innerHTML += row;
         });
 
-        // Chart: Alerts Per City
-        new Chart(document.getElementById("alertsPerCityChart"), {
-          type: "bar",
-          data: {
-            labels: Object.keys(perCity),
-            datasets: [{
-              label: "כמות אזעקות לפי יישוב",
-              data: Object.values(perCity),
-              backgroundColor: "rgba(255, 99, 132, 0.6)"
-            }]
-          }
-        });
-
-        // Chart: Alerts Per Hour
         new Chart(document.getElementById("alertsPerHourChart"), {
           type: "bar",
           data: {
             labels: Object.keys(perHour).sort(),
             datasets: [{
-              label: "כמות אזעקות לפי שעה",
+              label: "אזעקות לפי שעה",
               data: Object.keys(perHour).sort().map(h => perHour[h]),
-              backgroundColor: "rgba(54, 162, 235, 0.6)"
+              backgroundColor: "#666"
             }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { title: { display: true, text: 'שעה' } },
+              y: { title: { display: true, text: 'כמות' }, beginAtZero: true }
+            }
           }
         });
       } catch (err) {
         document.getElementById("loading").innerText = "שגיאה בטעינת הנתונים.";
-        console.error("שגיאה:", err);
+        console.error(err);
       }
     }
 
     loadData();
   </script>
+
 </body>
 </html>
